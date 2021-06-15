@@ -20,7 +20,7 @@
 #include <utility>
 
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/int32.hpp"
+#include "specialized_intra_process/specialized_intra_process.hpp"
 
 using namespace std::chrono_literals;
 
@@ -31,35 +31,34 @@ struct IncrementerPipe : public rclcpp::Node
   : Node(name, rclcpp::NodeOptions().use_intra_process_comms(true))
   {
     // Create a publisher on the output topic.
-    pub = this->create_publisher<std_msgs::msg::Int32>(out, 10);
+
+    pub = feature::create_intra_process_publisher<int>(this, out, 10);
     std::weak_ptr<std::remove_pointer<decltype(pub.get())>::type> captured_pub = pub;
     // Create a subscription on the input topic.
-    sub = this->create_subscription<std_msgs::msg::Int32>(
-      in,
-      10,
-      [captured_pub](std_msgs::msg::Int32::UniquePtr msg) {
+    sub = feature::create_intra_process_subscription<int>(
+      this, in, 10, [captured_pub](std::unique_ptr<int> msg) {
         auto pub_ptr = captured_pub.lock();
         if (!pub_ptr) {
           return;
         }
         printf(
-          "Received message with value:         %d, and address: 0x%" PRIXPTR "\n", msg->data,
+          "Received message with value:         %d, and address: 0x%" PRIXPTR "\n", *msg,
           reinterpret_cast<std::uintptr_t>(msg.get()));
         printf("  sleeping for 1 second...\n");
         if (!rclcpp::sleep_for(1s)) {
-          return;    // Return if the sleep failed (e.g. on ctrl-c).
+          return;  // Return if the sleep failed (e.g. on ctrl-c).
         }
         printf("  done.\n");
-        msg->data++;    // Increment the message's data.
+        (*msg)++;  // Increment the message's data.
         printf(
-          "Incrementing and sending with value: %d, and address: 0x%" PRIXPTR "\n", msg->data,
+          "Incrementing and sending with value: %d, and address: 0x%" PRIXPTR "\n", *msg,
           reinterpret_cast<std::uintptr_t>(msg.get()));
-        pub_ptr->publish(std::move(msg));    // Send the message along to the output topic.
+        pub_ptr->publish(std::move(msg));  // Send the message along to the output topic.
       });
   }
 
-  rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr pub;
-  rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr sub;
+  feature::Subscription<int>::SharedPtr sub;
+  feature::Publisher<int>::SharedPtr pub;
 };
 
 int main(int argc, char * argv[])
@@ -74,10 +73,10 @@ int main(int argc, char * argv[])
   auto pipe2 = std::make_shared<IncrementerPipe>("pipe2", "topic2", "topic1");
   rclcpp::sleep_for(1s);  // Wait for subscriptions to be established to avoid race conditions.
   // Publish the first message (kicking off the cycle).
-  std::unique_ptr<std_msgs::msg::Int32> msg(new std_msgs::msg::Int32());
-  msg->data = 42;
+  std::unique_ptr<int> msg(new int());
+  *msg = 42;
   printf(
-    "Published first message with value:  %d, and address: 0x%" PRIXPTR "\n", msg->data,
+    "Published first message with value:  %d, and address: 0x%" PRIXPTR "\n", *msg,
     reinterpret_cast<std::uintptr_t>(msg.get()));
   pipe1->pub->publish(std::move(msg));
 

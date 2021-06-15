@@ -18,6 +18,7 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(specialized_intra_process REQUIRED)
 
 
 add_executable(cyclic_pipeline
@@ -26,6 +27,7 @@ add_executable(cyclic_pipeline
 
 ament_target_dependencies(cyclic_pipeline
   "rclcpp"
+  "specialized_intra_process"
 )
 
 install(TARGETS
