@@ -61,31 +61,6 @@ install(
 ament_export_include_directories(include)
 ament_export_libraries(specialized_intra_process)
 
-add_executable(publish_address_book
-  src/test.cpp
-  src/intra_process_manager.cpp
-  src/publisher_wrapper_base.cpp
-  src/subscription_wrapper_base.cpp
-)
-
-
-ament_target_dependencies(publish_address_book
-  "rclcpp"
-  "notification_msgs"
-)
-
-add_executable(normal
-  src/normal.cpp
-)
-
-ament_target_dependencies(normal
-  "rclcpp"
-  "notification_msgs"
-)
-
-install(TARGETS publish_address_book
-  DESTINATION lib/${PROJECT_NAME})
-
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
