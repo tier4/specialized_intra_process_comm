@@ -52,7 +52,7 @@ public:
   using MessageSharedPtr = std::shared_ptr<const MessageT>;
 
   // virtual void add_shared(MessageSharedPtr msg) = 0;
-  virtual uint64_t add_unique(MessageUniquePtr msg) = 0;
+  virtual void add_unique(MessageUniquePtr msg, uint64_t seq) = 0;
 
   // virtual MessageSharedPtr consume_shared() = 0;
   virtual MessageUniquePtr consume_unique(uint64_t seq) = 0;
@@ -86,10 +86,9 @@ public:
   //   add_shared_impl<BufferT>(std::move(msg));
   // }
 
-  uint64_t add_unique(MessageUniquePtr msg) override
+  void add_unique(MessageUniquePtr msg, uint64_t seq) override
   {
-    auto seq = buffer_->enqueue(std::move(msg));
-    return seq;
+    buffer_->enqueue(std::move(msg), seq);
   }
 
   // MessageSharedPtr consume_shared() override

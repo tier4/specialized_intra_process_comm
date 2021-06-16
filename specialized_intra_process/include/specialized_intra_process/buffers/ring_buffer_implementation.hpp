@@ -49,8 +49,7 @@ public:
     ring_buffer_(capacity),
     write_index_(capacity_ - 1),
     read_index_(0),
-    size_(0),
-    seq_(0)
+    size_(0)
   {
     if (capacity == 0) {
       throw std::invalid_argument("capacity must be a positive, non-zero value");
@@ -59,22 +58,19 @@ public:
 
   virtual ~RingBufferImplementation() {}
 
-  uint64_t enqueue(BufferT request)
+  void enqueue(BufferT request, uint64_t seq)
   {
     std::lock_guard<std::mutex> lock(mutex_);
-    seq_++;
 
     write_index_ = next(write_index_);
     ring_buffer_[write_index_].data = std::move(request);
-    ring_buffer_[write_index_].seq = seq_;
+    ring_buffer_[write_index_].seq = seq;
 
     if (is_full()) {
       read_index_ = next(read_index_);
     } else {
       size_++;
     }
-
-    return seq_;
   }
 
   BufferT dequeue(uint64_t seq)
@@ -122,7 +118,6 @@ private:
   size_t write_index_;
   size_t read_index_;
   size_t size_;
-  uint64_t seq_;
 
   std::mutex mutex_;
 };

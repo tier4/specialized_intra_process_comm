@@ -51,10 +51,9 @@ public:
 
   MessageUniquePtr consume_unique(uint64_t seq) {return buffer_->consume_unique(seq);}
 
-  uint64_t provide_intra_process_message(MessageUniquePtr message)
+  void provide_intra_process_message(MessageUniquePtr message, uint64_t seq)
   {
-    auto seq = buffer_->add_unique(std::move(message));
-    return seq;
+    buffer_->add_unique(std::move(message), seq);
   }
   BufferSharedPtr buffer_;
 };

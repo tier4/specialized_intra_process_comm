@@ -19,6 +19,8 @@
 #include <utility>
 #include <vector>
 #include <unordered_map>
+#include <atomic>
+#include <string>
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -44,13 +46,16 @@ public:
     uint64_t intra_process_publisher_id,
     std::unique_ptr<MessageT> message)
   {
+    auto topic_name = publishers_[intra_process_publisher_id].topic_name;
+    auto seq = sequences_[topic_name]++;
+
     auto publisher_it = pub_to_subs_.find(intra_process_publisher_id);
     if (publisher_it == pub_to_subs_.end()) {
       // Publisher is either invalid or no longer exists.
       RCLCPP_WARN(
         rclcpp::get_logger("rclcpp"),
         "Calling do_intra_process_publish for invalid or no longer existing publisher id");
-      return 0;
+      return seq;
     }
     const auto & sub_ids = publisher_it->second;
 
@@ -72,10 +77,10 @@ public:
         sub_ids.take_ownership_subscriptions.begin(),
         sub_ids.take_ownership_subscriptions.end());
 
-      auto seq = this->template add_owned_msg_to_buffers<MessageT>(
+      this->template add_owned_msg_to_buffers<MessageT>(
         std::move(message),
-        concatenated_vector);
-      return seq;
+        concatenated_vector,
+        seq);
     } else if (!sub_ids.take_ownership_subscriptions.empty() && // NOLINT
       sub_ids.take_shared_subscriptions.size() > 1)
     {
@@ -88,7 +93,7 @@ public:
       // this->template add_owned_msg_to_buffers<MessageT, Alloc, Deleter>(
       //   std::move(message), sub_ids.take_ownership_subscriptions, allocator);
     }
-    return 0;
+    return seq;
   }
 
 private:
@@ -126,6 +131,9 @@ private:
   using PublisherToSubscriptionIdsMap =
     std::unordered_map<uint64_t, SplittedSubscriptions>;
 
+  // TODO(hsgwa): is using string as key slow? check.
+  using SequenceMap =
+    std::unordered_map<std::string, std::atomic<uint64_t>>;
 
   uint64_t get_next_unique_id();
   bool can_communicate(PublisherInfo pub_info, SubscriptionInfo sub_info) const;
@@ -136,10 +144,11 @@ private:
   template<
     typename MessageT
   >
-  uint64_t
+  void
   add_owned_msg_to_buffers(
     std::unique_ptr<MessageT> message,
-    std::vector<uint64_t> subscription_ids
+    std::vector<uint64_t> subscription_ids,
+    uint64_t seq
   )
   {
     // using MessageUniquePtr = std::unique_ptr<MessageT>;
@@ -159,8 +168,7 @@ private:
         // TODO(hsgwa): msg seqを上書きさせる？ reliableは何を補償すべきなのか確認
         // ex: provide(message, seq, overwrideseq=true)
         // If this is the last subscription, give up ownership
-        auto seq = subscription->provide_intra_process_message(std::move(message));
-        return seq;
+        subscription->provide_intra_process_message(std::move(message), seq);
       } else {
         // // Copy the message since we have additional subscriptions to serve
         // MessageUniquePtr copy_message;
@@ -172,13 +180,12 @@ private:
         // subscription->provide_intra_process_message(std::move(copy_message));
       }
     }
-
-    return 0;
   }
 
   PublisherToSubscriptionIdsMap pub_to_subs_;
   SubscriptionMap subscriptions_;
   PublisherMap publishers_;
+  SequenceMap sequences_;
   // TODO(hsgwa): add mutex
 };
 }  // namespace feature

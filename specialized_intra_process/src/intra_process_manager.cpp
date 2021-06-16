@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <unordered_map>
+
 #include "specialized_intra_process/intra_process_manager.hpp"
 
 namespace feature
@@ -30,6 +32,11 @@ uint64_t IntraProcessManager::add_publisher(PublisherBase::SharedPtr publisher)
 
   // Initialize the subscriptions storage for this publisher.
   pub_to_subs_[id] = SplittedSubscriptions();
+  auto topic_name = publishers_[id].topic_name;
+  auto has_key = sequences_.find(topic_name) != sequences_.end();
+  if (!has_key) {
+    sequences_[topic_name] = 0;
+  }
 
   // create an entry for the publisher id and populate with already existing
   // subscriptions
