@@ -22,7 +22,7 @@ find_package(notification_msgs REQUIRED)
 
 include_directories(include)
 
-add_library(specialized_intra_process
+add_library(specialized_intra_process SHARED
   src/intra_process_manager.cpp
   src/publisher_wrapper_base.cpp
   src/subscription_wrapper_base.cpp
