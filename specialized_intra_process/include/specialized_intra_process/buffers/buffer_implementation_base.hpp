@@ -25,11 +25,10 @@ class BufferImplementationBase
 public:
   virtual ~BufferImplementationBase() {}
 
-  virtual BufferT dequeue(uint64_t seq) = 0;
+  virtual bool dequeue(BufferT & request, uint64_t seq) = 0;
   virtual void enqueue(BufferT request, uint64_t seq) = 0;
 
   virtual void clear() = 0;
-  virtual bool has_data() const = 0;
 };
 
 }  // namespace buffers

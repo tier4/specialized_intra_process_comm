@@ -36,7 +36,6 @@ public:
 
   virtual void clear() = 0;
 
-  virtual bool has_data() const = 0;
   virtual bool use_take_shared_method() const = 0;
 };
 
@@ -55,7 +54,7 @@ public:
   virtual void add_unique(MessageUniquePtr msg, uint64_t seq) = 0;
 
   // virtual MessageSharedPtr consume_shared() = 0;
-  virtual MessageUniquePtr consume_unique(uint64_t seq) = 0;
+  virtual bool consume_unique(MessageUniquePtr & msg, uint64_t seq) = 0;
 };
 
 template<typename MessageT, typename BufferT = std::unique_ptr<MessageT>>
@@ -96,12 +95,10 @@ public:
   //   return consume_shared_impl<BufferT>();
   // }
 
-  MessageUniquePtr consume_unique(uint64_t seq) override
+  bool consume_unique(MessageUniquePtr & msg, uint64_t seq) override
   {
-    return consume_unique_impl<BufferT>(seq);
+    return consume_unique_impl<BufferT>(msg, seq);
   }
-
-  bool has_data() const override {return buffer_->has_data();}
 
   void clear() override {buffer_->clear();}
 
@@ -131,10 +128,13 @@ private:
 
   // MessageUniquePtr to MessageUniquePtr
   template<typename OriginT>
-  typename std::enable_if<(std::is_same<OriginT, MessageUniquePtr>::value), MessageUniquePtr>::type
-  consume_unique_impl(uint64_t seq)
+  bool
+  consume_unique_impl(
+    typename std::enable_if<(std::is_same<OriginT, MessageUniquePtr>::value),
+    MessageUniquePtr>::type & msg,
+    uint64_t seq)
   {
-    return buffer_->dequeue(seq);
+    return buffer_->dequeue(msg, seq);
   }
 };
 

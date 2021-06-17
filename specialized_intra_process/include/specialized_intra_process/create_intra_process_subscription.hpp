@@ -16,6 +16,7 @@
 #define SPECIALIZED_INTRA_PROCESS__CREATE_INTRA_PROCESS_SUBSCRIPTION_HPP_
 
 #include <memory>
+#include <utility>
 #include <string>
 
 #include "subscription_wrapper.hpp"
@@ -26,15 +27,21 @@ template<
   typename MessageT, typename CallbackT,
   typename CallbackMessageT =
   typename rclcpp::subscription_traits::has_message_type<CallbackT>::type,
+  typename CallbackArgT =
+  typename rclcpp::function_traits::function_traits<CallbackT>::template argument_type<0>,
   typename SubscriptionT = feature::Subscription<MessageT>>
 typename std::shared_ptr<SubscriptionT> create_intra_process_subscription(
   rclcpp::Node * node, const std::string & topic_name, const rclcpp::QoS & qos, CallbackT callback)
 {
   auto sub_wrapper = std::make_shared<SubscriptionT>();
 
-  auto callback_wrapper = [callback,
-      sub_wrapper](notification_msgs::msg::Notification::UniquePtr msg) {
-      callback(sub_wrapper->consume_unique(msg->seq));
+  auto callback_wrapper =
+    [callback, sub_wrapper](notification_msgs::msg::Notification::UniquePtr msg) {
+      CallbackArgT buf_msg;
+      auto success = sub_wrapper->consume_unique(buf_msg, msg->seq);
+      if (success) {
+        callback(move(buf_msg));
+      }
     };
   auto sub = node->create_subscription<notification_msgs::msg::Notification>(
     topic_name, qos, callback_wrapper);

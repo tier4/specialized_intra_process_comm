@@ -49,7 +49,10 @@ public:
     buffer_ = feature::create_intra_process_buffer<CallbackMessageT>(buffer_type, qos_profile);
   }
 
-  MessageUniquePtr consume_unique(uint64_t seq) {return buffer_->consume_unique(seq);}
+  bool consume_unique(MessageUniquePtr & msg, uint64_t seq)
+  {
+    return buffer_->consume_unique(msg, seq);
+  }
 
   void provide_intra_process_message(MessageUniquePtr message, uint64_t seq)
   {

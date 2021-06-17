@@ -73,37 +73,31 @@ public:
     }
   }
 
-  BufferT dequeue(uint64_t seq)
+  bool dequeue(BufferT & msg, uint64_t seq)
   {
     std::lock_guard<std::mutex> lock(mutex_);
-
-    if (!has_data()) {
-      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Calling dequeue on empty intra-process buffer");
-      throw std::runtime_error("Calling dequeue on empty intra-process buffer");
-    }
 
     // find and return seq-mached-message
     auto read_index = read_index_;
     for (size_t i = 0; i < capacity_; i++) {
       if (ring_buffer_[read_index_].seq == seq) {
-        auto request = std::move(ring_buffer_[read_index].data);
+        msg = std::move(ring_buffer_[read_index].data);
         read_index_ = next(read_index);
         size_--;
-        return request;
+        return true;
       }
       read_index = next(read_index);
     }
 
     // TODO(hsgwa): implement error pattern
-    auto request = std::move(ring_buffer_[read_index_].data);
-    read_index_ = next(read_index_);
+    RCLCPP_WARN(
+      rclcpp::get_logger("specialized_intra_process"),
+      "No corresponding message found.");
 
-    return request;
+    return false;
   }
 
   inline size_t next(size_t val) {return (val + 1) % capacity_;}
-
-  inline bool has_data() const {return size_ != 0;}
 
   inline bool is_full() {return size_ == capacity_;}
 
