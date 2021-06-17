@@ -24,13 +24,19 @@
 
 namespace feature
 {
-template<typename MessageT, typename PublisherT = feature::Publisher<MessageT>>
+template<
+  typename MessageT,
+  typename AllocatorT = std::allocator<void>,
+  typename PublisherT = feature::Publisher<MessageT, AllocatorT>>
 typename PublisherT::SharedPtr create_intra_process_publisher(
-  rclcpp::Node * node, const std::string & topic_name, const rclcpp::QoS & qos)
+  rclcpp::Node * node, const std::string & topic_name, const rclcpp::QoS & qos,
+  const rclcpp::PublisherOptionsWithAllocator<AllocatorT> & options =
+  rclcpp::PublisherOptionsWithAllocator<AllocatorT>())
 {
-  auto pub = node->create_publisher<notification_msgs::msg::Notification>(topic_name, qos);
+  auto pub = node->create_publisher<notification_msgs::msg::Notification>(
+    topic_name, qos, options);
 
-  auto pub_wrapper = std::make_shared<PublisherT>(node, pub);
+  auto pub_wrapper = std::make_shared<PublisherT>(node, pub, options);
 
   // This is used for setting up things like intra process comms which
   // require this->shared_from_this() which cannot be called from

@@ -26,22 +26,34 @@
 namespace feature
 {
 template<
-  typename MessageT, typename NotificationMessageT = notification_msgs::msg::Notification,
-  typename PublisherT = rclcpp::Publisher<NotificationMessageT>>
+  typename MessageT,
+  typename AllocatorT = std::allocator<void>
+>
 class Publisher : public feature::PublisherBase
 {
 public:
-  RCLCPP_SMART_PTR_DEFINITIONS(Publisher)
+  using NotificationMessageT = notification_msgs::msg::Notification;
+  using RosPublisherT = rclcpp::Publisher<NotificationMessageT, AllocatorT>;
 
-  Publisher(rclcpp::Node * node, std::shared_ptr<PublisherT> pub)
-  : PublisherBase(pub), pub_(pub)
+  using MessageAllocatorTraits =
+    rclcpp::allocator::AllocRebind<MessageT, AllocatorT>;
+  using MessageAllocator = typename MessageAllocatorTraits::allocator_type;
+
+  RCLCPP_SMART_PTR_DEFINITIONS(Publisher<MessageT, AllocatorT>)
+
+  Publisher(
+    rclcpp::Node * node, std::shared_ptr<RosPublisherT> pub,
+    const rclcpp::PublisherOptionsWithAllocator<AllocatorT> & options)
+  : PublisherBase(pub), message_allocator_(new MessageAllocator(
+        *options.get_allocator().get())),
+    pub_(pub)
   {
     (void)node;
   }
 
   ~Publisher() {}
 
-  void post_init_setup(rclcpp::Node * node, std::shared_ptr<PublisherT> pub)
+  void post_init_setup(rclcpp::Node * node, std::shared_ptr<RosPublisherT> pub)
   {
     (void)pub;
     auto node_base = node->get_node_base_interface();
@@ -64,11 +76,12 @@ public:
   {
     auto ipm = weak_ipm_.lock();
 
-    auto seq =
-      ipm->template do_intra_process_publish<MessageT>(intra_process_publisher_id_, std::move(msg));
+    auto seq = ipm->template do_intra_process_publish<MessageT, AllocatorT>(
+      intra_process_publisher_id_, std::move(msg), message_allocator_);
     return seq;
   }
-  std::shared_ptr<PublisherT> pub_;
+  std::shared_ptr<MessageAllocator> message_allocator_;
+  std::shared_ptr<RosPublisherT> pub_;
 };
 }  // namespace feature
 

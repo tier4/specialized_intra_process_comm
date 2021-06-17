@@ -38,13 +38,18 @@ public:
   void remove_subscription(uint64_t intra_process_subscription_id);
   void remove_publisher(uint64_t intra_process_publisher_id);
 
+  template<typename T, typename Alloc>
+  using AllocRebind = rclcpp::allocator::AllocRebind<T, Alloc>;
+
   template<
-    typename MessageT
+    typename MessageT,
+    typename Alloc = std::allocator<void>
   >
   uint64_t
   do_intra_process_publish(
     uint64_t intra_process_publisher_id,
-    std::unique_ptr<MessageT> message)
+    std::unique_ptr<MessageT> message,
+    std::shared_ptr<typename AllocRebind<MessageT, Alloc>::allocator_type> allocator)
   {
     auto topic_name = publishers_[intra_process_publisher_id].topic_name;
     auto seq = sequences_[topic_name]++;
@@ -77,10 +82,11 @@ public:
         sub_ids.take_ownership_subscriptions.begin(),
         sub_ids.take_ownership_subscriptions.end());
 
-      this->template add_owned_msg_to_buffers<MessageT>(
+      this->template add_owned_msg_to_buffers<MessageT, Alloc>(
         std::move(message),
         concatenated_vector,
-        seq);
+        seq,
+        allocator);
     } else if (!sub_ids.take_ownership_subscriptions.empty() && // NOLINT
       sub_ids.take_shared_subscriptions.size() > 1)
     {
@@ -142,15 +148,20 @@ private:
     bool use_take_shared_method);
 
   template<
-    typename MessageT
+    typename MessageT,
+    typename Alloc = std::allocator<void>
   >
   void
   add_owned_msg_to_buffers(
     std::unique_ptr<MessageT> message,
     std::vector<uint64_t> subscription_ids,
-    uint64_t seq
+    uint64_t seq,
+    std::shared_ptr<typename AllocRebind<MessageT, Alloc>::allocator_type> allocator
   )
   {
+    using MessageAllocTraits = AllocRebind<MessageT, Alloc>;
+    using MessageUniquePtr = std::unique_ptr<MessageT>;
+
     // using MessageUniquePtr = std::unique_ptr<MessageT>;
 
     for (auto it = subscription_ids.begin(); it != subscription_ids.end(); it++) {
@@ -171,13 +182,14 @@ private:
         subscription->provide_intra_process_message(std::move(message), seq);
       } else {
         // // Copy the message since we have additional subscriptions to serve
-        // MessageUniquePtr copy_message;
+        MessageUniquePtr copy_message;
         // Deleter deleter = message.get_deleter();
-        // auto ptr = MessageAllocTraits::allocate(*allocator.get(), 1);
-        // MessageAllocTraits::construct(*allocator.get(), ptr, *message);
-        // copy_message = MessageUniquePtr(ptr, deleter);
+        // TODO(hsgwa): use message deleter
+        auto ptr = MessageAllocTraits::allocate(*allocator.get(), 1);
+        MessageAllocTraits::construct(*allocator.get(), ptr, *message);
+        copy_message = MessageUniquePtr(ptr);
 
-        // subscription->provide_intra_process_message(std::move(copy_message));
+        subscription->provide_intra_process_message(std::move(copy_message), seq);
       }
     }
   }
