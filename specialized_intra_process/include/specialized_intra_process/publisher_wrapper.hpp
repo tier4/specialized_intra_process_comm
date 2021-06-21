@@ -46,9 +46,8 @@ public:
     const rclcpp::PublisherOptionsWithAllocator<AllocatorT> & options)
   : PublisherBase(pub), message_allocator_(new MessageAllocator(
         *options.get_allocator().get())),
-    pub_(pub)
+    pub_(pub), node_(node)
   {
-    (void)node;
   }
 
   ~Publisher() {}
@@ -69,6 +68,7 @@ public:
     auto seq = do_intra_process_publish(std::move(msg));
     auto notify_msg = std::make_unique<notification_msgs::msg::Notification>();
     notify_msg->seq = seq;
+    notify_msg->header.stamp = node_->now();
     pub_->publish(std::move(notify_msg));
   }
 
@@ -82,6 +82,7 @@ public:
   }
   std::shared_ptr<MessageAllocator> message_allocator_;
   std::shared_ptr<RosPublisherT> pub_;
+  rclcpp::Node * node_;
 };
 }  // namespace feature
 
