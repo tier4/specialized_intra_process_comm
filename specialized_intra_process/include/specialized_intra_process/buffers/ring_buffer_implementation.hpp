@@ -80,7 +80,7 @@ public:
     // find and return seq-mached-message
     auto read_index = read_index_;
     for (size_t i = 0; i < capacity_; i++) {
-      if (ring_buffer_[read_index_].seq == seq) {
+      if (ring_buffer_[read_index].seq == seq) {
         msg = std::move(ring_buffer_[read_index].data);
         read_index_ = next(read_index);
         size_--;
