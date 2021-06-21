@@ -39,6 +39,8 @@ IntraProcessManager::~IntraProcessManager() {}
 
 uint64_t IntraProcessManager::add_publisher(PublisherBase::SharedPtr publisher)
 {
+  std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+
   auto id = IntraProcessManager::get_next_unique_id();
 
   publishers_[id].publisher = publisher;
@@ -76,6 +78,8 @@ void IntraProcessManager::insert_sub_id_for_pub(
 
 uint64_t IntraProcessManager::add_subscription(SubscriptionBase::SharedPtr subscription)
 {
+  std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+
   auto id = IntraProcessManager::get_next_unique_id();
 
   subscriptions_[id].subscription = subscription;
@@ -95,7 +99,7 @@ uint64_t IntraProcessManager::add_subscription(SubscriptionBase::SharedPtr subsc
 
 void IntraProcessManager::remove_subscription(uint64_t intra_process_subscription_id)
 {
-  // std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+  std::unique_lock<std::shared_timed_mutex> lock(mutex_);
 
   subscriptions_.erase(intra_process_subscription_id);
 
@@ -116,7 +120,7 @@ void IntraProcessManager::remove_subscription(uint64_t intra_process_subscriptio
 
 void IntraProcessManager::remove_publisher(uint64_t intra_process_publisher_id)
 {
-  // std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+  std::unique_lock<std::shared_timed_mutex> lock(mutex_);
 
   publishers_.erase(intra_process_publisher_id);
   pub_to_subs_.erase(intra_process_publisher_id);

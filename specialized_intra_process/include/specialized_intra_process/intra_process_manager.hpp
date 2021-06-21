@@ -238,7 +238,8 @@ private:
   SubscriptionMap subscriptions_;
   PublisherMap publishers_;
   SequenceMap sequences_;
-  // TODO(hsgwa): add mutex
+
+  mutable std::shared_timed_mutex mutex_;
 };
 }  // namespace feature
 
