@@ -13,11 +13,26 @@
 // limitations under the License.
 
 #include <unordered_map>
+#include <memory>
+#include <utility>
 
 #include "specialized_intra_process/intra_process_manager.hpp"
 
 namespace feature
 {
+
+Counter::Counter()
+: count_(0)
+{
+}
+
+uint64_t Counter::get_incremented_count()
+{
+  std::lock_guard<std::mutex> lock(mutex_);
+  count_++;
+  return count_;
+}
+
 static std::atomic<uint64_t> _next_unique_id{1};
 
 IntraProcessManager::~IntraProcessManager() {}
@@ -35,7 +50,7 @@ uint64_t IntraProcessManager::add_publisher(PublisherBase::SharedPtr publisher)
   auto topic_name = publishers_[id].topic_name;
   auto has_key = sequences_.find(topic_name) != sequences_.end();
   if (!has_key) {
-    sequences_[topic_name] = 0;
+    sequences_[topic_name] = std::make_shared<feature::Counter>();
   }
 
   // create an entry for the publisher id and populate with already existing

@@ -29,6 +29,17 @@
 
 namespace feature
 {
+class Counter
+{
+public:
+  Counter();
+  uint64_t get_incremented_count();
+
+private:
+  uint64_t count_;
+  std::mutex mutex_;
+};
+
 class IntraProcessManager
 {
 public:
@@ -54,8 +65,10 @@ public:
     using MessageAllocTraits = rclcpp::allocator::AllocRebind<MessageT, Alloc>;
     using MessageAllocatorT = typename MessageAllocTraits::allocator_type;
 
+    std::shared_lock<std::shared_timed_mutex> lock(mutex_);
+
     auto topic_name = publishers_[intra_process_publisher_id].topic_name;
-    auto seq = sequences_[topic_name]++;
+    auto seq = sequences_[topic_name]->get_incremented_count();
 
     auto publisher_it = pub_to_subs_.find(intra_process_publisher_id);
     if (publisher_it == pub_to_subs_.end()) {
@@ -144,9 +157,8 @@ private:
   using PublisherToSubscriptionIdsMap =
     std::unordered_map<uint64_t, SplittedSubscriptions>;
 
-  // TODO(hsgwa): is using string as key slow? check.
   using SequenceMap =
-    std::unordered_map<std::string, std::atomic<uint64_t>>;
+    std::unordered_map<std::string, std::shared_ptr<Counter>>;
 
   uint64_t get_next_unique_id();
   bool can_communicate(PublisherInfo pub_info, SubscriptionInfo sub_info) const;
