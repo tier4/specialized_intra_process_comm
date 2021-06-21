@@ -45,9 +45,11 @@ public:
 
   ~Subscription() {}
 
-  void post_init_setup(rclcpp::Node * node, NotifySubscriptionT::SharedPtr sub)
+  void post_init_setup(
+    rclcpp::Node * node, NotifySubscriptionT::SharedPtr sub,
+    bool use_take_shared_method)
   {
-    TypedSubscriptionBase<CallbackMessageT>::post_init_setup(sub);
+    TypedSubscriptionBase<CallbackMessageT>::post_init_setup(sub, use_take_shared_method);
     sub_ = sub;
 
     auto node_base = node->get_node_base_interface();

@@ -34,24 +34,46 @@ public:
   using BufferSharedPtr =
     typename feature::buffers::IntraProcessBuffer<CallbackMessageT>::SharedPtr;
   using MessageUniquePtr = std::unique_ptr<CallbackMessageT>;
+  using ConstMessageSharedPtr = std::shared_ptr<const CallbackMessageT>;
 
   TypedSubscriptionBase()
   : SubscriptionBase() {}
 
   ~TypedSubscriptionBase() {}
-  void post_init_setup(rclcpp::SubscriptionBase::SharedPtr sub)
+  void post_init_setup(
+    rclcpp::SubscriptionBase::SharedPtr sub,
+    bool use_take_shared_method)
   {
     SubscriptionBase::post_init_setup(sub);
 
-    // Create the intra-process buffer.
-    auto buffer_type = IntraProcessBufferType::UniquePtr;
+    IntraProcessBufferType buffer_type;
+    if (use_take_shared_method) {
+      buffer_type = IntraProcessBufferType::SharedPtr;
+    } else {
+      buffer_type = IntraProcessBufferType::UniquePtr;
+    }
     rmw_qos_profile_t qos_profile = get_actual_qos().get_rmw_qos_profile();
     buffer_ = feature::create_intra_process_buffer<CallbackMessageT>(buffer_type, qos_profile);
   }
 
-  bool consume_unique(MessageUniquePtr & msg, uint64_t seq)
+  bool use_take_shared_method() const
+  {
+    return buffer_->use_take_shared_method();
+  }
+
+  bool consume(MessageUniquePtr & msg, uint64_t seq)
   {
     return buffer_->consume_unique(msg, seq);
+  }
+
+  bool consume(ConstMessageSharedPtr & msg, uint64_t seq)
+  {
+    return buffer_->consume_shared(msg, seq);
+  }
+
+  void provide_intra_process_message(ConstMessageSharedPtr message, uint64_t seq)
+  {
+    buffer_->add_shared(std::move(message), seq);
   }
 
   void provide_intra_process_message(MessageUniquePtr message, uint64_t seq)

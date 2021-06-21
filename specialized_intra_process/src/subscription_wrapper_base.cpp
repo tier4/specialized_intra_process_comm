@@ -33,12 +33,6 @@ SubscriptionBase::~SubscriptionBase()
   ipm->remove_subscription(intra_process_subscription_id_);
 }
 
-bool SubscriptionBase::use_take_shared_method() const
-{
-  // TODO(hsgwa): modify
-  return false;
-}
-
 const char * SubscriptionBase::get_topic_name() const {return sub_base_->get_topic_name();}
 
 rclcpp::QoS SubscriptionBase::get_actual_qos() const {return sub_base_->get_actual_qos();}

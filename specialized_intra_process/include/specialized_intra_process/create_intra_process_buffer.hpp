@@ -26,24 +26,40 @@
 namespace feature
 {
 template<
-  typename MessageT, typename IntraProcessBufferT = feature::buffers::IntraProcessBuffer<MessageT>>
+  typename MessageT,
+  typename IntraProcessBufferT = feature::buffers::IntraProcessBuffer<MessageT>,
+  typename Alloc = std::allocator<void>>
 typename IntraProcessBufferT::UniquePtr create_intra_process_buffer(
   IntraProcessBufferType buffer_type, rmw_qos_profile_t qos)
 {
-  // using MessageSharedPtr = std::shared_ptr<const MessageT>;
+  using MessageSharedPtr = std::shared_ptr<const MessageT>;
   using MessageUniquePtr = std::unique_ptr<MessageT>;
 
   size_t buffer_size = qos.depth;
   typename IntraProcessBufferT::UniquePtr buffer;
 
   switch (buffer_type) {
+    case IntraProcessBufferType::SharedPtr: {
+        using BufferT = MessageSharedPtr;
+        using BufferImplementationT = feature::buffers::RingBufferImplementation<BufferT>;
+
+        auto buffer_implementation = std::make_unique<BufferImplementationT>(buffer_size);
+
+        // Construct the intra_process_buffer
+        using TypedIntraProcessBufferT =
+          feature::buffers::TypedIntraProcessBuffer<MessageT, Alloc, BufferT>;
+        buffer = std::make_unique<TypedIntraProcessBufferT>(
+          std::move(buffer_implementation));
+
+        break;
+      }
     case IntraProcessBufferType::UniquePtr: {
         using BufferT = MessageUniquePtr;
         using BufferImplementationT = feature::buffers::RingBufferImplementation<BufferT>;
         auto buffer_implementation = std::make_unique<BufferImplementationT>(buffer_size);
 
         // Construct the intra_process_buffer
-        using TypedIntraProcessBufferT = feature::buffers::TypedIntraProcessBuffer<MessageT,
+        using TypedIntraProcessBufferT = feature::buffers::TypedIntraProcessBuffer<MessageT, Alloc,
             BufferT>;
         buffer = std::make_unique<TypedIntraProcessBufferT>(std::move(buffer_implementation));
         break;

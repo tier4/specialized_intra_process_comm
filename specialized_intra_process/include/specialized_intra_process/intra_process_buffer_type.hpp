@@ -17,7 +17,7 @@
 
 namespace feature
 {
-enum class IntraProcessBufferType { SharedPtr, UniquePtr };
+enum class IntraProcessBufferType { SharedPtr, UniquePtr, CallbackDefault };
 }
 
 #endif  // SPECIALIZED_INTRA_PROCESS__INTRA_PROCESS_BUFFER_TYPE_HPP_

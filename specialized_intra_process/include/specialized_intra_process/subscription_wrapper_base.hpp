@@ -39,7 +39,8 @@ public:
   /// Default destructor.
   virtual ~SubscriptionBase();
 
-  bool use_take_shared_method() const;
+  virtual bool use_take_shared_method() const = 0;
+
   const char * get_topic_name() const;
 
   rclcpp::QoS get_actual_qos() const;

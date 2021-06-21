@@ -51,6 +51,9 @@ public:
     std::unique_ptr<MessageT> message,
     std::shared_ptr<typename AllocRebind<MessageT, Alloc>::allocator_type> allocator)
   {
+    using MessageAllocTraits = rclcpp::allocator::AllocRebind<MessageT, Alloc>;
+    using MessageAllocatorT = typename MessageAllocTraits::allocator_type;
+
     auto topic_name = publishers_[intra_process_publisher_id].topic_name;
     auto seq = sequences_[topic_name]++;
 
@@ -66,9 +69,10 @@ public:
 
     if (sub_ids.take_ownership_subscriptions.empty()) {
       // // None of the buffers require ownership, so we promote the pointer
-      // std::shared_ptr<MessageT> msg = std::move(message);
+      std::shared_ptr<MessageT> msg = std::move(message);
 
-      // this->template add_shared_msg_to_buffers<MessageT>(msg, sub_ids.take_shared_subscriptions);
+      this->template add_shared_msg_to_buffers<MessageT>(
+        msg, sub_ids.take_shared_subscriptions, seq);
     } else if (!sub_ids.take_ownership_subscriptions.empty() && // NOLINT
       sub_ids.take_shared_subscriptions.size() <= 1)
     {
@@ -90,14 +94,17 @@ public:
     } else if (!sub_ids.take_ownership_subscriptions.empty() && // NOLINT
       sub_ids.take_shared_subscriptions.size() > 1)
     {
-      // // Construct a new shared pointer from the message
-      // // for the buffers that do not require ownership
-      // auto shared_msg = std::allocate_shared<MessageT>(*message);
+      // Construct a new shared pointer from the message
+      // for the buffers that do not require ownership
+      auto shared_msg = std::allocate_shared<MessageT, MessageAllocatorT>(*allocator, *message);
 
-      // this->template add_shared_msg_to_buffers<MessageT>(
-      //   shared_msg, sub_ids.take_shared_subscriptions);
-      // this->template add_owned_msg_to_buffers<MessageT, Alloc, Deleter>(
-      //   std::move(message), sub_ids.take_ownership_subscriptions, allocator);
+      this->template add_shared_msg_to_buffers<MessageT>(
+        shared_msg, sub_ids.take_shared_subscriptions, seq);
+      this->template add_owned_msg_to_buffers<MessageT, Alloc>(
+        std::move(message),
+        sub_ids.take_ownership_subscriptions,
+        seq,
+        allocator);
     }
     return seq;
   }
@@ -147,6 +154,28 @@ private:
     uint64_t sub_id, uint64_t pub_id,
     bool use_take_shared_method);
 
+  template<typename MessageT>
+  void add_shared_msg_to_buffers(
+    std::shared_ptr<const MessageT> message,
+    std::vector<uint64_t> subscription_ids,
+    uint64_t seq)
+  {
+    for (auto id : subscription_ids) {
+      auto subscription_it = subscriptions_.find(id);
+      if (subscription_it == subscriptions_.end()) {
+        throw std::runtime_error(
+                "subscription has unexpectedly gone out of scope");
+      }
+      auto subscription_base = subscription_it->second.subscription;
+
+      using TypedSubscriptionT = feature::TypedSubscriptionBase<MessageT>;
+      auto subscription = std::static_pointer_cast<TypedSubscriptionT>(
+        subscription_base.lock());
+
+      subscription->provide_intra_process_message(message, seq);
+    }
+  }
+
   template<
     typename MessageT,
     typename Alloc = std::allocator<void>
@@ -176,7 +205,6 @@ private:
         subscription_base.lock());
 
       if (std::next(it) == subscription_ids.end()) {
-        // TODO(hsgwa): msg seqを上書きさせる？ reliableは何を補償すべきなのか確認
         // ex: provide(message, seq, overwrideseq=true)
         // If this is the last subscription, give up ownership
         subscription->provide_intra_process_message(std::move(message), seq);
