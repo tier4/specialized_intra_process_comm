@@ -54,7 +54,7 @@ public:
 
   void post_init_setup(rclcpp::Node * node, std::shared_ptr<RosPublisherT> pub)
   {
-    (void)pub;
+    (void) pub;
     auto node_base = node->get_node_base_interface();
     auto context = node_base->get_context();
     auto ipm = context->get_sub_context<IntraProcessManager>();

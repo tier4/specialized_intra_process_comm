@@ -203,8 +203,6 @@ private:
     using MessageAllocTraits = AllocRebind<MessageT, Alloc>;
     using MessageUniquePtr = std::unique_ptr<MessageT>;
 
-    // using MessageUniquePtr = std::unique_ptr<MessageT>;
-
     for (auto it = subscription_ids.begin(); it != subscription_ids.end(); it++) {
       auto subscription_it = subscriptions_.find(*it);
       if (subscription_it == subscriptions_.end()) {

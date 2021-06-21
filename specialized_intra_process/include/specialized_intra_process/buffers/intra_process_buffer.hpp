@@ -197,8 +197,9 @@ private:
       // // MessageDeleter *deleter =
       // //     std::get_deleter<MessageDeleter, const MessageT>(buffer_msg);
       auto ptr = MessageAllocTraits::allocate(*message_allocator_.get(), 1);
-      MessageAllocTraits::construct(*message_allocator_.get(), ptr,
-      *shared_msg);
+      MessageAllocTraits::construct(
+        *message_allocator_.get(), ptr,
+        *shared_msg);
       // // if (deleter) {
       // //   msg = MessageUniquePtr(ptr, *deleter);
       // // } else {

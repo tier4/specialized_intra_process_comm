@@ -89,7 +89,6 @@ public:
       read_index = next(read_index);
     }
 
-    // TODO(hsgwa): implement error pattern
     RCLCPP_WARN(
       rclcpp::get_logger("specialized_intra_process"),
       "No corresponding message found.");
