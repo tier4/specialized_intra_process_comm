@@ -27,13 +27,18 @@ namespace feature
 {
 template<
   typename MessageT,
-  typename IntraProcessBufferT = feature::buffers::IntraProcessBuffer<MessageT>,
-  typename Alloc = std::allocator<void>>
-typename IntraProcessBufferT::UniquePtr create_intra_process_buffer(
-  IntraProcessBufferType buffer_type, rmw_qos_profile_t qos)
+  typename AllocatorT = std::allocator<void>,
+  typename Deleter = std::default_delete<MessageT>,
+  typename IntraProcessBufferT =
+  feature::buffers::IntraProcessBuffer<MessageT, AllocatorT, Deleter>
+>
+typename IntraProcessBufferT::UniquePtr
+create_intra_process_buffer(
+  IntraProcessBufferType buffer_type,
+  rmw_qos_profile_t qos)
 {
+  using MessageUniquePtr = std::unique_ptr<MessageT, Deleter>;
   using MessageSharedPtr = std::shared_ptr<const MessageT>;
-  using MessageUniquePtr = std::unique_ptr<MessageT>;
 
   size_t buffer_size = qos.depth;
   typename IntraProcessBufferT::UniquePtr buffer;
@@ -47,7 +52,8 @@ typename IntraProcessBufferT::UniquePtr create_intra_process_buffer(
 
         // Construct the intra_process_buffer
         using TypedIntraProcessBufferT =
-          feature::buffers::TypedIntraProcessBuffer<MessageT, Alloc, BufferT>;
+          feature::buffers::TypedIntraProcessBuffer<MessageT, AllocatorT,
+            Deleter, BufferT>;
         buffer = std::make_unique<TypedIntraProcessBufferT>(
           std::move(buffer_implementation));
 
@@ -59,8 +65,9 @@ typename IntraProcessBufferT::UniquePtr create_intra_process_buffer(
         auto buffer_implementation = std::make_unique<BufferImplementationT>(buffer_size);
 
         // Construct the intra_process_buffer
-        using TypedIntraProcessBufferT = feature::buffers::TypedIntraProcessBuffer<MessageT, Alloc,
-            BufferT>;
+        using TypedIntraProcessBufferT =
+          feature::buffers::TypedIntraProcessBuffer<MessageT, AllocatorT,
+            Deleter, BufferT>;
         buffer = std::make_unique<TypedIntraProcessBufferT>(std::move(buffer_implementation));
         break;
       }

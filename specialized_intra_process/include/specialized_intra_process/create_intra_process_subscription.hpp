@@ -29,20 +29,32 @@ template<
   typename AllocatorT = std::allocator<void>,
   typename CallbackMessageT =
   typename rclcpp::subscription_traits::has_message_type<CallbackT>::type,
-  typename CallbackArgT = typename rclcpp::function_traits::function_traits<
-    CallbackT>::template argument_type<0>,
-  typename SubscriptionT = feature::Subscription<MessageT>>
+  typename SubscriptionT = feature::Subscription<MessageT, AllocatorT>,
+  typename MessageMemoryStrategyT = rclcpp::message_memory_strategy::
+  MessageMemoryStrategy<CallbackMessageT, AllocatorT>>
 typename std::shared_ptr<SubscriptionT> create_intra_process_subscription(
   rclcpp::Node * node, const std::string & topic_name, const rclcpp::QoS & qos,
   CallbackT && callback,
-  const rclcpp::SubscriptionOptionsWithAllocator<AllocatorT> & options = (
-    rclcpp::SubscriptionOptionsWithAllocator<AllocatorT>()
-))
+  const rclcpp::SubscriptionOptionsWithAllocator<AllocatorT> & options =
+  (rclcpp::SubscriptionOptionsWithAllocator<AllocatorT>()),
+  typename MessageMemoryStrategyT::SharedPtr msg_mem_strat =
+  (MessageMemoryStrategyT::create_default()))
 {
   auto sub_wrapper = std::make_shared<SubscriptionT>();
 
-  auto callback_wrapper =
-    [callback, sub_wrapper](notification_msgs::msg::Notification::UniquePtr msg) {
+  using NotificationT = notification_msgs::msg::Notification;
+  using NotificationAllocTraits = rclcpp::allocator::AllocRebind<NotificationT, AllocatorT>;
+  using NotificationAllocatorT = typename NotificationAllocTraits::allocator_type;
+  using NotificationDeleter =
+    rclcpp::allocator::Deleter<NotificationAllocatorT, NotificationT>;
+  using NotificationUniquePtr = std::unique_ptr<NotificationT, NotificationDeleter>;
+  using NotificationMemoryStrategyT =
+    rclcpp::message_memory_strategy::MessageMemoryStrategy<NotificationT, AllocatorT>;
+
+  auto callback_wrapper = [callback, sub_wrapper](NotificationUniquePtr msg)
+    -> void {
+      using CallbackArgT = typename
+        rclcpp::function_traits::function_traits<CallbackT>::template argument_type<0>;
       CallbackArgT buf_msg;
       auto success = sub_wrapper->consume(buf_msg, msg->seq);
       if (success) {
@@ -53,11 +65,15 @@ typename std::shared_ptr<SubscriptionT> create_intra_process_subscription(
           "Failed to get the message. Executing callback was cancelled.");
       }
     };
-  auto sub = node->create_subscription<notification_msgs::msg::Notification>(
-    topic_name, qos, callback_wrapper);
+
+  auto notification_mem_strat =
+    std::make_shared<NotificationMemoryStrategyT>(options.allocator);
+  auto sub = node->create_subscription<NotificationT>(
+    topic_name, qos, callback_wrapper, options, notification_mem_strat);
+
 
   // define any_calback to call "use_take_shared_method"
-  rclcpp::AnySubscriptionCallback<CallbackMessageT, std::allocator<void>>
+  rclcpp::AnySubscriptionCallback<CallbackMessageT, AllocatorT>
   any_callback(options.get_allocator());
   any_callback.set(std::forward<CallbackT>(callback));
   auto use_take_shared_method = any_callback.use_take_shared_method();

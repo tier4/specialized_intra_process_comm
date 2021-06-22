@@ -39,7 +39,11 @@ public:
   virtual bool use_take_shared_method() const = 0;
 };
 
-template<typename MessageT>
+template<
+  typename MessageT,
+  typename Alloc = std::allocator<void>,
+  typename MessageDeleter = std::default_delete<MessageT>
+>
 class IntraProcessBuffer : public IntraProcessBufferBase
 {
 public:
@@ -47,7 +51,7 @@ public:
 
   virtual ~IntraProcessBuffer() {}
 
-  using MessageUniquePtr = std::unique_ptr<MessageT>;
+  using MessageUniquePtr = std::unique_ptr<MessageT, MessageDeleter>;
   using MessageSharedPtr = std::shared_ptr<const MessageT>;
 
   virtual void add_shared(MessageSharedPtr msg, uint64_t seq) = 0;
@@ -60,15 +64,17 @@ public:
 template<
   typename MessageT,
   typename Alloc = std::allocator<void>,
-  typename BufferT = std::unique_ptr<MessageT>>
-class TypedIntraProcessBuffer : public IntraProcessBuffer<MessageT>
+  typename MessageDeleter = std::default_delete<MessageT>,
+  typename BufferT = std::unique_ptr<MessageT, MessageDeleter>
+>
+class TypedIntraProcessBuffer : public IntraProcessBuffer<MessageT, Alloc, MessageDeleter>
 {
 public:
   RCLCPP_SMART_PTR_DEFINITIONS(TypedIntraProcessBuffer)
 
   using MessageAllocTraits = rclcpp::allocator::AllocRebind<MessageT, Alloc>;
   using MessageAlloc = typename MessageAllocTraits::allocator_type;
-  using MessageUniquePtr = std::unique_ptr<MessageT>;
+  using MessageUniquePtr = std::unique_ptr<MessageT, MessageDeleter>;
   using MessageSharedPtr = std::shared_ptr<const MessageT>;
 
   explicit TypedIntraProcessBuffer(
@@ -143,17 +149,16 @@ private:
     // intra-process manager can decide whether a copy is needed depending on
     // the number and the type of buffers
 
-    // TODO(hsgwa): support deleter
     MessageUniquePtr unique_msg;
-    // MessageDeleter *deleter =
-    //     std::get_deleter<MessageDeleter, const MessageT>(shared_msg);
+    MessageDeleter * deleter =
+      std::get_deleter<MessageDeleter, const MessageT>(shared_msg);
     auto ptr = MessageAllocTraits::allocate(*message_allocator_.get(), 1);
     MessageAllocTraits::construct(*message_allocator_.get(), ptr, *shared_msg);
-    // if (deleter) {
-    //   unique_msg = MessageUniquePtr(ptr, *deleter);
-    // } else {
-    unique_msg = MessageUniquePtr(ptr);
-    // }
+    if (deleter) {
+      unique_msg = MessageUniquePtr(ptr, *deleter);
+    } else {
+      unique_msg = MessageUniquePtr(ptr);
+    }
 
     buffer_->enqueue(std::move(unique_msg), seq);
   }
@@ -193,20 +198,19 @@ private:
     bool success = buffer_->dequeue(shared_msg, seq);
 
     if (success) {
-      // MessageUniquePtr unique_msg;
-      // // MessageDeleter *deleter =
-      // //     std::get_deleter<MessageDeleter, const MessageT>(buffer_msg);
+      MessageUniquePtr unique_msg;
+      MessageDeleter * deleter =
+        std::get_deleter<MessageDeleter, const MessageT>(shared_msg);
       auto ptr = MessageAllocTraits::allocate(*message_allocator_.get(), 1);
       MessageAllocTraits::construct(
         *message_allocator_.get(), ptr,
         *shared_msg);
-      // // if (deleter) {
-      // //   msg = MessageUniquePtr(ptr, *deleter);
-      // // } else {
-      msg = MessageUniquePtr(ptr);
-      // // }
+      if (deleter) {
+        msg = MessageUniquePtr(ptr, *deleter);
+      } else {
+        msg = MessageUniquePtr(ptr);
+      }
     }
-    // TODO(hsgwa): implement deleter
     return success;
   }
 

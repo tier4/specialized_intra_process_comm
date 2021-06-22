@@ -28,40 +28,77 @@ namespace feature
 {
 template<
   typename CallbackMessageT,
-  typename TypedSubscriptionBaseT = TypedSubscriptionBase<CallbackMessageT>>
-class Subscription : public TypedSubscriptionBaseT
+  typename AllocatorT = std::allocator<void>
+>
+class Subscription
 {
 public:
   RCLCPP_SMART_PTR_DEFINITIONS(Subscription)
 
-  using NotifySubscriptionT = typename rclcpp::Subscription<notification_msgs::msg::Notification>;
+  using MessageAllocTraits =
+    rclcpp::allocator::AllocRebind<CallbackMessageT, AllocatorT>;
+  using MessageAllocatorT = typename MessageAllocTraits::allocator_type;
+  using MessageDeleter = rclcpp::allocator::Deleter<MessageAllocatorT, CallbackMessageT>;
+  using MessageUniquePtr = std::unique_ptr<CallbackMessageT, MessageDeleter>;
+  using MessageSharedPtr = std::shared_ptr<const CallbackMessageT>;
 
-  using BufferSharedPtr =
-    typename feature::buffers::IntraProcessBuffer<CallbackMessageT>::SharedPtr;
-  using MessageUniquePtr = std::unique_ptr<CallbackMessageT>;
+  using TypedSubscriptionBaseT =
+    TypedSubscriptionBase<CallbackMessageT, MessageAllocatorT, MessageDeleter>;
+
+  using NotificationT = notification_msgs::msg::Notification;
+  using NotificationAllocTraits =
+    rclcpp::allocator::AllocRebind<NotificationT, AllocatorT>;
+  using NotificationAllocatorT =
+    typename NotificationAllocTraits::allocator_type;
+  using NotificationDeleter =
+    rclcpp::allocator::Deleter<NotificationAllocatorT, NotificationT>;
+  using NotificationUniquePtr =
+    std::unique_ptr<NotificationT, NotificationDeleter>;
+
+  using NotificationMemoryStrategyT =
+    rclcpp::message_memory_strategy::MessageMemoryStrategy<NotificationT,
+      AllocatorT>;
+  using NotifySubscriptionT =
+    typename rclcpp::Subscription<NotificationT, AllocatorT,
+      NotificationMemoryStrategyT>;
 
   Subscription()
-  : TypedSubscriptionBaseT() {}
+  {
+  }
 
-  ~Subscription() {}
+  ~Subscription()
+  {
+  }
 
   void post_init_setup(
-    rclcpp::Node * node, NotifySubscriptionT::SharedPtr sub,
+    rclcpp::Node * node, typename NotifySubscriptionT::SharedPtr notify_sub,
     bool use_take_shared_method)
   {
-    TypedSubscriptionBase<CallbackMessageT>::post_init_setup(sub, use_take_shared_method);
-    sub_ = sub;
+    sub_ = std::make_shared<TypedSubscriptionBaseT>();
+    sub_->post_init_setup(notify_sub, use_take_shared_method);
+    notify_sub_ = notify_sub;
 
     auto node_base = node->get_node_base_interface();
     auto context = node_base->get_context();
     auto ipm = context->get_sub_context<feature::IntraProcessManager>();
 
-    uint64_t intra_process_subscription_id = ipm->add_subscription(this->shared_from_this());
-    this->setup_intra_process(intra_process_subscription_id, ipm);
+    uint64_t intra_process_subscription_id = ipm->add_subscription(sub_);
+    sub_->setup_intra_process(intra_process_subscription_id, ipm);
+  }
+
+  bool consume(MessageUniquePtr & msg, uint64_t seq)
+  {
+    return sub_->consume_unique(msg, seq);
+  }
+
+  bool consume(MessageSharedPtr & msg, uint64_t seq)
+  {
+    return sub_->consume_shared(msg, seq);
   }
 
   // private:
-  NotifySubscriptionT::SharedPtr sub_;
+  std::shared_ptr<TypedSubscriptionBaseT> sub_;
+  typename NotifySubscriptionT::SharedPtr notify_sub_;
 };
 }  // namespace feature
 

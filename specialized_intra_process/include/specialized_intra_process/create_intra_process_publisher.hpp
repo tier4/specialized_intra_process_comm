@@ -27,11 +27,16 @@ namespace feature
 template<
   typename MessageT,
   typename AllocatorT = std::allocator<void>,
-  typename PublisherT = feature::Publisher<MessageT, AllocatorT>>
-typename PublisherT::SharedPtr create_intra_process_publisher(
-  rclcpp::Node * node, const std::string & topic_name, const rclcpp::QoS & qos,
+  typename PublisherT = feature::Publisher<MessageT, AllocatorT>
+>
+typename PublisherT::SharedPtr
+create_intra_process_publisher(
+  rclcpp::Node * node,
+  const std::string & topic_name,
+  const rclcpp::QoS & qos,
   const rclcpp::PublisherOptionsWithAllocator<AllocatorT> & options =
-  rclcpp::PublisherOptionsWithAllocator<AllocatorT>())
+  rclcpp::PublisherOptionsWithAllocator<AllocatorT>()
+)
 {
   auto pub = node->create_publisher<notification_msgs::msg::Notification>(
     topic_name, qos, options);

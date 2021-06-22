@@ -32,27 +32,39 @@ template<
 class Publisher : public feature::PublisherBase
 {
 public:
-  using NotificationMessageT = notification_msgs::msg::Notification;
-  using RosPublisherT = rclcpp::Publisher<NotificationMessageT, AllocatorT>;
-
-  using MessageAllocatorTraits =
-    rclcpp::allocator::AllocRebind<MessageT, AllocatorT>;
+  using MessageAllocatorTraits = rclcpp::allocator::AllocRebind<MessageT, AllocatorT>;
   using MessageAllocator = typename MessageAllocatorTraits::allocator_type;
+  using MessageDeleter = rclcpp::allocator::Deleter<MessageAllocator, MessageT>;
+  using MessageUniquePtr = std::unique_ptr<MessageT, MessageDeleter>;
+  using MessageSharedPtr = std::shared_ptr<const MessageT>;
+
+  using NotificationT = notification_msgs::msg::Notification;
+  using NotificationAllocatorTraits =
+    rclcpp::allocator::AllocRebind<NotificationT, AllocatorT>;
+  using NotificationAllocator = typename NotificationAllocatorTraits::allocator_type;
+  using NotificationDeleter = rclcpp::allocator::Deleter<NotificationAllocator, NotificationT>;
+  using NotificationUniquePtr = std::unique_ptr<NotificationT, NotificationDeleter>;
+
+  using NotificationPublisherT = rclcpp::Publisher<NotificationT, AllocatorT>;
 
   RCLCPP_SMART_PTR_DEFINITIONS(Publisher<MessageT, AllocatorT>)
 
   Publisher(
-    rclcpp::Node * node, std::shared_ptr<RosPublisherT> pub,
+    rclcpp::Node * node, std::shared_ptr<NotificationPublisherT> pub,
     const rclcpp::PublisherOptionsWithAllocator<AllocatorT> & options)
-  : PublisherBase(pub), message_allocator_(new MessageAllocator(
-        *options.get_allocator().get())),
+  : PublisherBase(pub),
+    message_allocator_(new MessageAllocator(*options.get_allocator().get())),
+    notification_allocator_(new NotificationAllocator(*options.get_allocator().get())),
     pub_(pub), node_(node)
   {
+    using rclcpp::allocator::set_allocator_for_deleter;
+    set_allocator_for_deleter(&message_deleter_, message_allocator_.get());
+    set_allocator_for_deleter(&notification_deleter_, notification_allocator_.get());
   }
 
   ~Publisher() {}
 
-  void post_init_setup(rclcpp::Node * node, std::shared_ptr<RosPublisherT> pub)
+  void post_init_setup(rclcpp::Node * node, std::shared_ptr<NotificationPublisherT> pub)
   {
     (void) pub;
     auto node_base = node->get_node_base_interface();
@@ -63,25 +75,31 @@ public:
     this->setup_intra_process(intra_process_publisher_id, ipm);
   }
 
-  void publish(std::unique_ptr<MessageT> msg)
+  void publish(MessageUniquePtr msg)
   {
     auto seq = do_intra_process_publish(std::move(msg));
-    auto notify_msg = std::make_unique<notification_msgs::msg::Notification>();
+    auto ptr = NotificationAllocatorTraits::allocate(*notification_allocator_.get(), 1);
+    NotificationAllocatorTraits::construct(*notification_allocator_.get(), ptr);
+    NotificationUniquePtr notify_msg(ptr, notification_deleter_);
     notify_msg->seq = seq;
     notify_msg->header.stamp = node_->now();
     pub_->publish(std::move(notify_msg));
   }
 
-  uint64_t do_intra_process_publish(std::unique_ptr<MessageT> msg)
+  uint64_t do_intra_process_publish(MessageUniquePtr msg)
   {
     auto ipm = weak_ipm_.lock();
 
-    auto seq = ipm->template do_intra_process_publish<MessageT, AllocatorT>(
+    auto seq = ipm->template do_intra_process_publish<MessageT, MessageAllocator, MessageDeleter>(
       intra_process_publisher_id_, std::move(msg), message_allocator_);
     return seq;
   }
+
   std::shared_ptr<MessageAllocator> message_allocator_;
-  std::shared_ptr<RosPublisherT> pub_;
+  MessageDeleter message_deleter_;
+  std::shared_ptr<NotificationAllocator> notification_allocator_;
+  NotificationDeleter notification_deleter_;
+  std::shared_ptr<NotificationPublisherT> pub_;
   rclcpp::Node * node_;
 };
 }  // namespace feature

@@ -25,16 +25,22 @@
 
 namespace feature
 {
-template<typename CallbackMessageT>
+template<
+  typename CallbackMessageT,
+  typename AllocatorT = std::allocator<void>,
+  typename Deleter = std::default_delete<CallbackMessageT>
+>
 class TypedSubscriptionBase : public SubscriptionBase
 {
 public:
   RCLCPP_SMART_PTR_DEFINITIONS(TypedSubscriptionBase)
 
+  using MessageUniquePtr = std::unique_ptr<CallbackMessageT, Deleter>;
+  using MessageSharedPtr = std::shared_ptr<const CallbackMessageT>;
+
   using BufferSharedPtr =
-    typename feature::buffers::IntraProcessBuffer<CallbackMessageT>::SharedPtr;
-  using MessageUniquePtr = std::unique_ptr<CallbackMessageT>;
-  using ConstMessageSharedPtr = std::shared_ptr<const CallbackMessageT>;
+    typename feature::buffers::IntraProcessBuffer<
+    CallbackMessageT, AllocatorT, Deleter>::SharedPtr;
 
   TypedSubscriptionBase()
   : SubscriptionBase() {}
@@ -53,7 +59,8 @@ public:
       buffer_type = IntraProcessBufferType::UniquePtr;
     }
     rmw_qos_profile_t qos_profile = get_actual_qos().get_rmw_qos_profile();
-    buffer_ = feature::create_intra_process_buffer<CallbackMessageT>(buffer_type, qos_profile);
+    buffer_ = feature::create_intra_process_buffer<CallbackMessageT, AllocatorT, Deleter>(
+      buffer_type, qos_profile);
   }
 
   bool use_take_shared_method() const
@@ -61,17 +68,17 @@ public:
     return buffer_->use_take_shared_method();
   }
 
-  bool consume(MessageUniquePtr & msg, uint64_t seq)
+  bool consume_unique(MessageUniquePtr & msg, uint64_t seq)
   {
     return buffer_->consume_unique(msg, seq);
   }
 
-  bool consume(ConstMessageSharedPtr & msg, uint64_t seq)
+  bool consume_shared(MessageSharedPtr & msg, uint64_t seq)
   {
     return buffer_->consume_shared(msg, seq);
   }
 
-  void provide_intra_process_message(ConstMessageSharedPtr message, uint64_t seq)
+  void provide_intra_process_message(MessageSharedPtr message, uint64_t seq)
   {
     buffer_->add_shared(std::move(message), seq);
   }
