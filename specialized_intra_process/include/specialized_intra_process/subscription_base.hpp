@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SPECIALIZED_INTRA_PROCESS__PUBLISHER_WRAPPER_BASE_HPP_
-#define SPECIALIZED_INTRA_PROCESS__PUBLISHER_WRAPPER_BASE_HPP_
+#ifndef SPECIALIZED_INTRA_PROCESS__SUBSCRIPTION_BASE_HPP_
+#define SPECIALIZED_INTRA_PROCESS__SUBSCRIPTION_BASE_HPP_
 
 #include <memory>
 
@@ -23,33 +23,37 @@ namespace feature
 {
 /**
  * IntraProcessManager is forward declared here, avoiding a circular inclusion
- * between `intra_process_manager.hpp` and `publisher_base.hpp`.
+ * between `intra_process_manager.hpp` and `subscription_base.hpp`.
  */
 class IntraProcessManager;
 
-class PublisherBase : public std::enable_shared_from_this<PublisherBase>
+class SubscriptionBase : public std::enable_shared_from_this<SubscriptionBase>
 {
 public:
-  RCLCPP_SMART_PTR_DEFINITIONS(PublisherBase)
+  RCLCPP_SMART_PTR_DEFINITIONS(SubscriptionBase)
 
-  explicit PublisherBase(rclcpp::PublisherBase::SharedPtr pub);
+  SubscriptionBase();
 
-  virtual ~PublisherBase();
+  void post_init_setup(rclcpp::SubscriptionBase::SharedPtr sub);
 
-  using IntraProcessManagerSharedPtr = std::shared_ptr<feature::IntraProcessManager>;
+  /// Default destructor.
+  virtual ~SubscriptionBase();
+
+  virtual bool use_take_shared_method() const = 0;
 
   const char * get_topic_name() const;
 
   rclcpp::QoS get_actual_qos() const;
 
-  void setup_intra_process(uint64_t intra_process_publisher_id, IntraProcessManagerSharedPtr ipm);
-
-  std::shared_ptr<rclcpp::PublisherBase> pub_base_;
-
   using IntraProcessManagerWeakPtr = std::weak_ptr<feature::IntraProcessManager>;
+
+  void setup_intra_process(
+    uint64_t intra_process_subscription_id, IntraProcessManagerWeakPtr weak_ipm);
+
   IntraProcessManagerWeakPtr weak_ipm_;
-  uint64_t intra_process_publisher_id_;
+  uint64_t intra_process_subscription_id_;
+  std::shared_ptr<rclcpp::SubscriptionBase> sub_base_;
 };
 }  // namespace feature
 
-#endif  // SPECIALIZED_INTRA_PROCESS__PUBLISHER_WRAPPER_BASE_HPP_
+#endif  // SPECIALIZED_INTRA_PROCESS__SUBSCRIPTION_BASE_HPP_

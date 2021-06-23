@@ -24,8 +24,8 @@
 
 #include "rclcpp/rclcpp.hpp"
 
-#include "publisher_wrapper_base.hpp"
-#include "typed_subscription_wrapper_base.hpp"
+#include "publisher_base.hpp"
+#include "typed_subscription.hpp"
 
 namespace feature
 {
@@ -181,7 +181,7 @@ private:
       }
       auto subscription_base = subscription_it->second.subscription;
 
-      using TypedSubscriptionT = feature::TypedSubscriptionBase<MessageT>;
+      using TypedSubscriptionT = feature::TypedSubscription<MessageT>;
       auto subscription = std::static_pointer_cast<TypedSubscriptionT>(
         subscription_base.lock());
 
@@ -212,7 +212,7 @@ private:
       }
       auto subscription_base = subscription_it->second.subscription;
 
-      using TypedSubscriptionT = feature::TypedSubscriptionBase<MessageT>;
+      using TypedSubscriptionT = feature::TypedSubscription<MessageT>;
       auto subscription = std::static_pointer_cast<TypedSubscriptionT>(
         subscription_base.lock());
 

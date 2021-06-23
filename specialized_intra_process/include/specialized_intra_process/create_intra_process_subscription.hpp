@@ -20,7 +20,7 @@
 #include <string>
 
 #include "rclcpp/rclcpp.hpp"
-#include "subscription_wrapper.hpp"
+#include "subscription.hpp"
 
 namespace feature
 {

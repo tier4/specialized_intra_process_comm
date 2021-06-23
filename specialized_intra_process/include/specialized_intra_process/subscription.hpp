@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SPECIALIZED_INTRA_PROCESS__SUBSCRIPTION_WRAPPER_HPP_
-#define SPECIALIZED_INTRA_PROCESS__SUBSCRIPTION_WRAPPER_HPP_
+#ifndef SPECIALIZED_INTRA_PROCESS__SUBSCRIPTION_HPP_
+#define SPECIALIZED_INTRA_PROCESS__SUBSCRIPTION_HPP_
 
 #include <memory>
 
@@ -22,7 +22,7 @@
 #include "intra_process_manager.hpp"
 #include "notification_msgs/msg/notification.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "typed_subscription_wrapper_base.hpp"
+#include "typed_subscription.hpp"
 
 namespace feature
 {
@@ -42,8 +42,8 @@ public:
   using MessageUniquePtr = std::unique_ptr<CallbackMessageT, MessageDeleter>;
   using MessageSharedPtr = std::shared_ptr<const CallbackMessageT>;
 
-  using TypedSubscriptionBaseT =
-    TypedSubscriptionBase<CallbackMessageT, MessageAllocatorT, MessageDeleter>;
+  using TypedSubscriptionT =
+    TypedSubscription<CallbackMessageT, MessageAllocatorT, MessageDeleter>;
 
   using NotificationT = notification_msgs::msg::Notification;
   using NotificationAllocTraits =
@@ -74,7 +74,7 @@ public:
     rclcpp::Node * node, typename NotifySubscriptionT::SharedPtr notify_sub,
     bool use_take_shared_method)
   {
-    sub_ = std::make_shared<TypedSubscriptionBaseT>();
+    sub_ = std::make_shared<TypedSubscriptionT>();
     sub_->post_init_setup(notify_sub, use_take_shared_method);
     notify_sub_ = notify_sub;
 
@@ -97,9 +97,9 @@ public:
   }
 
   // private:
-  std::shared_ptr<TypedSubscriptionBaseT> sub_;
+  std::shared_ptr<TypedSubscriptionT> sub_;
   typename NotifySubscriptionT::SharedPtr notify_sub_;
 };
 }  // namespace feature
 
-#endif  // SPECIALIZED_INTRA_PROCESS__SUBSCRIPTION_WRAPPER_HPP_
+#endif  // SPECIALIZED_INTRA_PROCESS__SUBSCRIPTION_HPP_

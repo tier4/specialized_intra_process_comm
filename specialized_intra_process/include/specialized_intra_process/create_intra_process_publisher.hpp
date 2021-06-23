@@ -20,7 +20,7 @@
 #include <string>
 #include <memory>
 
-#include "publisher_wrapper.hpp"
+#include "publisher.hpp"
 
 namespace feature
 {

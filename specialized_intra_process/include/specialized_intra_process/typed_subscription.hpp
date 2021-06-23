@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SPECIALIZED_INTRA_PROCESS__TYPED_SUBSCRIPTION_WRAPPER_BASE_HPP_
-#define SPECIALIZED_INTRA_PROCESS__TYPED_SUBSCRIPTION_WRAPPER_BASE_HPP_
+#ifndef SPECIALIZED_INTRA_PROCESS__TYPED_SUBSCRIPTION_HPP_
+#define SPECIALIZED_INTRA_PROCESS__TYPED_SUBSCRIPTION_HPP_
 
 #include <memory>
 #include <utility>
@@ -21,7 +21,7 @@
 #include "create_intra_process_buffer.hpp"
 #include "intra_process_buffer_type.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "subscription_wrapper_base.hpp"
+#include "subscription_base.hpp"
 
 namespace feature
 {
@@ -30,10 +30,10 @@ template<
   typename AllocatorT = std::allocator<void>,
   typename Deleter = std::default_delete<CallbackMessageT>
 >
-class TypedSubscriptionBase : public SubscriptionBase
+class TypedSubscription : public SubscriptionBase
 {
 public:
-  RCLCPP_SMART_PTR_DEFINITIONS(TypedSubscriptionBase)
+  RCLCPP_SMART_PTR_DEFINITIONS(TypedSubscription)
 
   using MessageUniquePtr = std::unique_ptr<CallbackMessageT, Deleter>;
   using MessageSharedPtr = std::shared_ptr<const CallbackMessageT>;
@@ -42,10 +42,10 @@ public:
     typename feature::buffers::IntraProcessBuffer<
     CallbackMessageT, AllocatorT, Deleter>::SharedPtr;
 
-  TypedSubscriptionBase()
+  TypedSubscription()
   : SubscriptionBase() {}
 
-  ~TypedSubscriptionBase() {}
+  ~TypedSubscription() {}
   void post_init_setup(
     rclcpp::SubscriptionBase::SharedPtr sub,
     bool use_take_shared_method)
@@ -92,4 +92,4 @@ public:
 
 }  // namespace feature
 
-#endif  // SPECIALIZED_INTRA_PROCESS__TYPED_SUBSCRIPTION_WRAPPER_BASE_HPP_
+#endif  // SPECIALIZED_INTRA_PROCESS__TYPED_SUBSCRIPTION_HPP_

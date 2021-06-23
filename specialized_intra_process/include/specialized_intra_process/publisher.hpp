@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SPECIALIZED_INTRA_PROCESS__PUBLISHER_WRAPPER_HPP_
-#define SPECIALIZED_INTRA_PROCESS__PUBLISHER_WRAPPER_HPP_
+#ifndef SPECIALIZED_INTRA_PROCESS__PUBLISHER_HPP_
+#define SPECIALIZED_INTRA_PROCESS__PUBLISHER_HPP_
 
 #include <memory>
 #include <utility>
 
 #include "intra_process_manager.hpp"
 #include "notification_msgs/msg/notification.hpp"
-#include "publisher_wrapper_base.hpp"
+#include "publisher_base.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace feature
@@ -104,4 +104,4 @@ public:
 };
 }  // namespace feature
 
-#endif  // SPECIALIZED_INTRA_PROCESS__PUBLISHER_WRAPPER_HPP_
+#endif  // SPECIALIZED_INTRA_PROCESS__PUBLISHER_HPP_

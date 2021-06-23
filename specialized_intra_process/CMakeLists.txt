@@ -24,8 +24,8 @@ include_directories(include)
 
 add_library(specialized_intra_process SHARED
   src/intra_process_manager.cpp
-  src/publisher_wrapper_base.cpp
-  src/subscription_wrapper_base.cpp
+  src/publisher_base.cpp
+  src/subscription_base.cpp
 )
 
 ament_target_dependencies(specialized_intra_process
