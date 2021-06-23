@@ -55,7 +55,7 @@ public:
   : PublisherBase(pub),
     message_allocator_(new MessageAllocator(*options.get_allocator().get())),
     notification_allocator_(new NotificationAllocator(*options.get_allocator().get())),
-    pub_(pub), node_(node)
+    pub_(pub), clock_(node->get_clock())
   {
     using rclcpp::allocator::set_allocator_for_deleter;
     set_allocator_for_deleter(&message_deleter_, message_allocator_.get());
@@ -82,7 +82,9 @@ public:
     NotificationAllocatorTraits::construct(*notification_allocator_.get(), ptr);
     NotificationUniquePtr notify_msg(ptr, notification_deleter_);
     notify_msg->seq = seq;
-    notify_msg->header.stamp = node_->now();
+    if (auto clock = clock_.lock()) {
+      notify_msg->header.stamp = clock->now();
+    }
     pub_->publish(std::move(notify_msg));
   }
 
@@ -100,7 +102,7 @@ public:
   std::shared_ptr<NotificationAllocator> notification_allocator_;
   NotificationDeleter notification_deleter_;
   std::shared_ptr<NotificationPublisherT> pub_;
-  rclcpp::Node * node_;
+  std::weak_ptr<rclcpp::Clock> clock_;
 };
 }  // namespace feature
 
