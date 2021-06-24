@@ -40,8 +40,6 @@ typename std::shared_ptr<SubscriptionT> create_intra_process_subscription(
   typename MessageMemoryStrategyT::SharedPtr msg_mem_strat =
   (MessageMemoryStrategyT::create_default()))
 {
-  auto sub_wrapper = std::make_shared<SubscriptionT>();
-
   using NotificationT = notification_msgs::msg::Notification;
   using NotificationAllocTraits = rclcpp::allocator::AllocRebind<NotificationT, AllocatorT>;
   using NotificationAllocatorT = typename NotificationAllocTraits::allocator_type;
@@ -51,11 +49,19 @@ typename std::shared_ptr<SubscriptionT> create_intra_process_subscription(
   using NotificationMemoryStrategyT =
     rclcpp::message_memory_strategy::MessageMemoryStrategy<NotificationT, AllocatorT>;
 
-  auto callback_wrapper = [callback, sub_wrapper](NotificationUniquePtr msg)
-    -> void {
-      using CallbackArgT = typename
-        rclcpp::function_traits::function_traits<CallbackT>::template argument_type<0>;
+  auto sub_wrapper = std::make_shared<SubscriptionT>();
+  std::weak_ptr<SubscriptionT> sub_wrapper_weak = sub_wrapper;
+
+  auto callback_wrapper =
+    [callback, sub_wrapper_weak](NotificationUniquePtr msg) -> void {
+      auto sub_wrapper = sub_wrapper_weak.lock();
+      if (!sub_wrapper) {
+        return;
+      }
+      using rclcpp::function_traits::function_traits;
+      using CallbackArgT = typename function_traits<CallbackT>::template argument_type<0>;
       CallbackArgT buf_msg;
+
       auto success = sub_wrapper->consume(buf_msg, msg->seq);
       if (success) {
         callback(move(buf_msg));
