@@ -17,11 +17,15 @@
 
 #include <memory>
 #include <utility>
+#include <string>
+#include <type_traits>
 
 #include "intra_process_manager.hpp"
 #include "notification_msgs/msg/notification.hpp"
 #include "publisher_base.hpp"
 #include "rclcpp/rclcpp.hpp"
+
+#include "ros_message_publisher.hpp"
 
 namespace feature
 {
@@ -32,6 +36,8 @@ template<
 class Publisher : public feature::PublisherBase
 {
 public:
+  RCLCPP_SMART_PTR_DEFINITIONS(Publisher<MessageT, AllocatorT>)
+
   using MessageAllocatorTraits = rclcpp::allocator::AllocRebind<MessageT, AllocatorT>;
   using MessageAllocator = typename MessageAllocatorTraits::allocator_type;
   using MessageDeleter = rclcpp::allocator::Deleter<MessageAllocator, MessageT>;
@@ -47,7 +53,9 @@ public:
 
   using NotificationPublisherT = rclcpp::Publisher<NotificationT, AllocatorT>;
 
-  RCLCPP_SMART_PTR_DEFINITIONS(Publisher<MessageT, AllocatorT>)
+  template <typename FunctionT>
+  using function_traits = rclcpp::function_traits::function_traits<FunctionT>;
+
 
   Publisher(
     rclcpp::Node * node, std::shared_ptr<NotificationPublisherT> pub,
@@ -55,7 +63,9 @@ public:
   : PublisherBase(pub),
     message_allocator_(new MessageAllocator(*options.get_allocator().get())),
     notification_allocator_(new NotificationAllocator(*options.get_allocator().get())),
-    pub_(pub), clock_(node->get_clock())
+    pub_(pub),
+    clock_(node->get_clock()),
+    ros_msg_pub_(nullptr)
   {
     using rclcpp::allocator::set_allocator_for_deleter;
     set_allocator_for_deleter(&message_deleter_, message_allocator_.get());
@@ -77,6 +87,10 @@ public:
 
   void publish(MessageUniquePtr msg)
   {
+    if (ros_msg_pub_) {
+      ros_msg_pub_->publish_ros_message(*msg);
+    }
+
     auto seq = do_intra_process_publish(std::move(msg));
     auto ptr = NotificationAllocatorTraits::allocate(*notification_allocator_.get(), 1);
     NotificationAllocatorTraits::construct(*notification_allocator_.get(), ptr);
@@ -97,12 +111,35 @@ public:
     return seq;
   }
 
+  template<
+    typename ConversionT,
+    typename RosMessageT =
+    typename std::remove_const<
+      typename std::remove_reference<
+        typename function_traits<ConversionT>::template argument_type<1>
+      >::type
+    >::type
+  >
+  void set_conversion_to_ros_message(
+    rclcpp::Node * node, ConversionT conversion,
+    std::string suffix = "/converted")
+  {
+    auto topic_name = pub_->get_topic_name() + suffix;
+    auto qos = pub_->get_actual_qos();
+    // TODO(hsgwa): support allocator;
+    auto pub = node->create_publisher<RosMessageT>(topic_name, qos);
+    using RosMessagePublisherT = RosMessagePublisher<MessageT, RosMessageT, ConversionT>;
+    auto rospub = std::make_shared<RosMessagePublisherT>(pub, conversion);
+    ros_msg_pub_ = rospub;
+  }
+
   std::shared_ptr<MessageAllocator> message_allocator_;
   MessageDeleter message_deleter_;
   std::shared_ptr<NotificationAllocator> notification_allocator_;
   NotificationDeleter notification_deleter_;
   std::shared_ptr<NotificationPublisherT> pub_;
   std::weak_ptr<rclcpp::Clock> clock_;
+  typename RosMessagePublisherBase<MessageT>::SharedPtr ros_msg_pub_;
 };
 }  // namespace feature
 

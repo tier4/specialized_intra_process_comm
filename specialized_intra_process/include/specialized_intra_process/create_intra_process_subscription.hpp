@@ -25,7 +25,8 @@
 namespace feature
 {
 template<
-  typename MessageT, typename CallbackT,
+  typename MessageT,
+  typename CallbackT,
   typename AllocatorT = std::allocator<void>,
   typename CallbackMessageT =
   typename rclcpp::subscription_traits::has_message_type<CallbackT>::type,
@@ -33,7 +34,9 @@ template<
   typename MessageMemoryStrategyT = rclcpp::message_memory_strategy::
   MessageMemoryStrategy<CallbackMessageT, AllocatorT>>
 typename std::shared_ptr<SubscriptionT> create_intra_process_subscription(
-  rclcpp::Node * node, const std::string & topic_name, const rclcpp::QoS & qos,
+  rclcpp::Node * node,
+  const std::string & topic_name,
+  const rclcpp::QoS & qos,
   CallbackT && callback,
   const rclcpp::SubscriptionOptionsWithAllocator<AllocatorT> & options =
   (rclcpp::SubscriptionOptionsWithAllocator<AllocatorT>()),
@@ -81,14 +84,14 @@ typename std::shared_ptr<SubscriptionT> create_intra_process_subscription(
   // define any_calback to call "use_take_shared_method"
   rclcpp::AnySubscriptionCallback<CallbackMessageT, AllocatorT>
   any_callback(options.get_allocator());
-  any_callback.set(std::forward<CallbackT>(callback));
+  any_callback.set(callback);
   auto use_take_shared_method = any_callback.use_take_shared_method();
 
   // This is used for setting up things like intra process comms which
   // require this->shared_from_this() which cannot be called from
   // the constructor.
   // And because of circular reference.
-  sub_wrapper->post_init_setup(node, sub, use_take_shared_method);
+  sub_wrapper->post_init_setup(node, sub, use_take_shared_method, callback);
 
   return sub_wrapper;
 }

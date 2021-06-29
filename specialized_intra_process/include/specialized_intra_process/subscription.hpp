@@ -16,6 +16,9 @@
 #define SPECIALIZED_INTRA_PROCESS__SUBSCRIPTION_HPP_
 
 #include <memory>
+#include <functional>
+#include <utility>
+#include <string>
 
 #include "create_intra_process_buffer.hpp"
 #include "intra_process_buffer_type.hpp"
@@ -62,7 +65,11 @@ public:
     typename rclcpp::Subscription<NotificationT, AllocatorT,
       NotificationMemoryStrategyT>;
 
+  template <typename FunctionT>
+  using function_traits = rclcpp::function_traits::function_traits<FunctionT>;
+
   Subscription()
+  : sub_(nullptr), notify_sub_(nullptr)
   {
   }
 
@@ -70,13 +77,17 @@ public:
   {
   }
 
+  template<typename CallbackT>
   void post_init_setup(
-    rclcpp::Node * node, typename NotifySubscriptionT::SharedPtr notify_sub,
-    bool use_take_shared_method)
+    rclcpp::Node * node,
+    typename NotifySubscriptionT::SharedPtr notify_sub,
+    bool use_take_shared_method,
+    CallbackT callback)
   {
     sub_ = std::make_shared<TypedSubscriptionT>();
     sub_->post_init_setup(notify_sub, use_take_shared_method);
     notify_sub_ = notify_sub;
+    callback_ = callback;
 
     auto node_base = node->get_node_base_interface();
     auto context = node_base->get_context();
@@ -96,9 +107,35 @@ public:
     return sub_->consume_shared(msg, seq);
   }
 
-  // private:
+
+  template
+  <
+    typename ConversionT,
+    typename RosMessageT =
+    typename std::remove_const<
+      typename std::remove_reference<
+        typename function_traits<ConversionT>::template argument_type<0>>
+      ::type>::type
+  >
+  void set_conversion_to_custom_message(
+    rclcpp::Node * node, ConversionT conversion, std::string suffix = "/converted")
+  {
+    auto callback_wrapper = [&, conversion](typename RosMessageT::UniquePtr msg) {
+        auto custom_msg = std::make_unique<CallbackMessageT>();
+        conversion(*msg, *custom_msg);
+        callback_(std::move(custom_msg));
+      };
+
+    auto topic_name = sub_->get_topic_name() + suffix;
+    auto qos = sub_->get_actual_qos();
+    ros_msg_sub_ = node->create_subscription<RosMessageT>(topic_name, qos, callback_wrapper);
+  }
+
+private:
   std::shared_ptr<TypedSubscriptionT> sub_;
   typename NotifySubscriptionT::SharedPtr notify_sub_;
+  std::function<void(MessageUniquePtr)> callback_;
+  rclcpp::SubscriptionBase::SharedPtr ros_msg_sub_;
 };
 }  // namespace feature
 

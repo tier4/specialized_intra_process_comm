@@ -20,9 +20,17 @@
 #include <utility>
 
 #include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/int32.hpp"
 #include "specialized_intra_process/specialized_intra_process.hpp"
 
 using namespace std::chrono_literals;
+void to_ros_msg(const int &source, std_msgs::msg::Int32 &destination) {
+  destination.data = source;
+}
+
+void to_custom_msg(const std_msgs::msg::Int32 &source, int &destination) {
+  destination = source.data;
+}
 
 // This node receives an Int32, waits 1 second, then increments and sends it.
 struct IncrementerPipe : public rclcpp::Node
@@ -55,6 +63,9 @@ struct IncrementerPipe : public rclcpp::Node
           reinterpret_cast<std::uintptr_t>(msg.get()));
         pub_ptr->publish(std::move(msg));  // Send the message along to the output topic.
       });
+
+    pub->set_conversion_to_ros_message(this, to_ros_msg, "/converted/pub");
+    sub->set_conversion_to_custom_message(this, to_custom_msg, "/converted/sub");
   }
 
   feature::Subscription<int>::SharedPtr sub;
