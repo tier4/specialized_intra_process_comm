@@ -212,7 +212,7 @@ private:
       }
       auto subscription_base = subscription_it->second.subscription;
 
-      using TypedSubscriptionT = feature::TypedSubscription<MessageT>;
+      using TypedSubscriptionT = feature::TypedSubscription<MessageT, Alloc, Deleter>;
       auto subscription = std::static_pointer_cast<TypedSubscriptionT>(
         subscription_base.lock());
 
