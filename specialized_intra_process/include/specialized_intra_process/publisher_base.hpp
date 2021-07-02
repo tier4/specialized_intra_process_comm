@@ -42,6 +42,8 @@ public:
 
   rclcpp::QoS get_actual_qos() const;
 
+  size_t get_subscription_count() const;
+
   void setup_intra_process(uint64_t intra_process_publisher_id, IntraProcessManagerSharedPtr ipm);
 
   std::shared_ptr<rclcpp::PublisherBase> pub_base_;

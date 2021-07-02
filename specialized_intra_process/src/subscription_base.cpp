@@ -37,6 +37,11 @@ const char * SubscriptionBase::get_topic_name() const {return sub_base_->get_top
 
 rclcpp::QoS SubscriptionBase::get_actual_qos() const {return sub_base_->get_actual_qos();}
 
+size_t SubscriptionBase::get_publisher_count() const
+{
+  return sub_base_->get_publisher_count();
+}
+
 void SubscriptionBase::setup_intra_process(
   uint64_t intra_process_subscription_id, IntraProcessManagerWeakPtr weak_ipm)
 {

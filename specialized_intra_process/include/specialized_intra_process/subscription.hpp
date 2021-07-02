@@ -131,6 +131,21 @@ public:
     ros_msg_sub_ = node->create_subscription<RosMessageT>(topic_name, qos, callback_wrapper);
   }
 
+  const char * get_topic_name() const
+  {
+    return sub_->get_topic_name();
+  }
+
+  rclcpp::QoS get_actual_qos() const
+  {
+    return sub_->get_actual_qos();
+  }
+
+  size_t get_publisher_count() const
+  {
+    return sub_->get_publisher_count();
+  }
+
 private:
   std::shared_ptr<TypedSubscriptionT> sub_;
   typename NotifySubscriptionT::SharedPtr notify_sub_;

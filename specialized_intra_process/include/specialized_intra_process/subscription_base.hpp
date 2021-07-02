@@ -45,6 +45,8 @@ public:
 
   rclcpp::QoS get_actual_qos() const;
 
+  size_t get_publisher_count() const;
+
   using IntraProcessManagerWeakPtr = std::weak_ptr<feature::IntraProcessManager>;
 
   void setup_intra_process(

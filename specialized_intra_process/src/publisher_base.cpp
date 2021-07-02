@@ -38,6 +38,11 @@ const char * PublisherBase::get_topic_name() const {return pub_base_->get_topic_
 
 rclcpp::QoS PublisherBase::get_actual_qos() const {return pub_base_->get_actual_qos();}
 
+size_t PublisherBase::get_subscription_count() const
+{
+  return pub_base_->get_subscription_count();
+}
+
 void PublisherBase::setup_intra_process(
   uint64_t intra_process_publisher_id, IntraProcessManagerSharedPtr ipm)
 {
