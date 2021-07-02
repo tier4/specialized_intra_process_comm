@@ -24,11 +24,13 @@
 #include "specialized_intra_process/specialized_intra_process.hpp"
 
 using namespace std::chrono_literals;
-void to_ros_msg(const int &source, std_msgs::msg::Int32 &destination) {
+void to_ros_msg(const int & source, std_msgs::msg::Int32 & destination)
+{
   destination.data = source;
 }
 
-void to_custom_msg(const std_msgs::msg::Int32 &source, int &destination) {
+void to_custom_msg(const std_msgs::msg::Int32 & source, int & destination)
+{
   destination = source.data;
 }
 

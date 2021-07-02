@@ -53,7 +53,7 @@ public:
 
   using NotificationPublisherT = rclcpp::Publisher<NotificationT, AllocatorT>;
 
-  template <typename FunctionT>
+  template<typename FunctionT>
   using function_traits = rclcpp::function_traits::function_traits<FunctionT>;
 
 

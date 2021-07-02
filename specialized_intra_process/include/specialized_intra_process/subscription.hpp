@@ -65,7 +65,7 @@ public:
     typename rclcpp::Subscription<NotificationT, AllocatorT,
       NotificationMemoryStrategyT>;
 
-  template <typename FunctionT>
+  template<typename FunctionT>
   using function_traits = rclcpp::function_traits::function_traits<FunctionT>;
 
   Subscription()
