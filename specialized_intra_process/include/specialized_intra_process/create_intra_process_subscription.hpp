@@ -67,7 +67,7 @@ typename std::shared_ptr<SubscriptionT> create_intra_process_subscription(
 
       auto success = sub_wrapper->consume(buf_msg, msg->seq);
       if (success) {
-        callback(move(buf_msg));
+        callback(std::move(buf_msg));
       } else {
         RCLCPP_WARN(
           rclcpp::get_logger("specialized_intra_process"),
