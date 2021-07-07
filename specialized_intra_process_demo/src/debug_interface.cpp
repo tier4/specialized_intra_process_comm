@@ -44,10 +44,10 @@ public:
         RCLCPP_INFO(get_logger(), "Subscribed ros message: count = '%d'", *msg);
       };
 
-    auto ping_debug_topic_name = PING_TOPIC_NAME + "/converted";
+    auto ping_debug_topic_name = PING_TOPIC_NAME + std::string("/converted");
     pub_ = this->create_publisher<ROSMessage>(ping_debug_topic_name, 10);
 
-    auto pong_debug_topic_name = PONG_TOPIC_NAME + "/converted";
+    auto pong_debug_topic_name = PONG_TOPIC_NAME + std::string("/converted");
     sub_ = this->create_subscription<ROSMessage>(pong_debug_topic_name, 10, sub_callback);
 
     auto timer_callback = [&]() {
