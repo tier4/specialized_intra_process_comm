@@ -127,7 +127,6 @@ public:
     auto topic_name = pub_->get_topic_name() + suffix;
     auto qos = pub_->get_actual_qos();
     // TODO(hsgwa): support allocator;
-    qos.reliable().transient_local();
     auto pub = node->create_publisher<RosMessageT>(topic_name, qos);
     using RosMessagePublisherT = RosMessagePublisher<MessageT, RosMessageT, ConversionT>;
     auto rospub = std::make_shared<RosMessagePublisherT>(pub, conversion);
