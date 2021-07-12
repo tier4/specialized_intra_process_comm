@@ -90,7 +90,7 @@ public:
     }
 
     RCLCPP_WARN(
-      rclcpp::get_logger("specialized_intra_process"),
+      rclcpp::get_logger("specialized_intra_process_comm"),
       "No corresponding message found.");
 
     return false;

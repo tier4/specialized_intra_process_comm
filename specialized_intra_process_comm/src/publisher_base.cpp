@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "specialized_intra_process/publisher_base.hpp"
+#include "specialized_intra_process_comm/publisher_base.hpp"
 
-#include "specialized_intra_process/intra_process_manager.hpp"
+#include "specialized_intra_process_comm/intra_process_manager.hpp"
 
 namespace feature
 {

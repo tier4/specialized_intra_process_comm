@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(specialized_intra_process_demo)
+project(specialized_intra_process_comm_demo)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -19,7 +19,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(specialized_intra_process REQUIRED)
+find_package(specialized_intra_process_comm REQUIRED)
 find_package(tlsf_cpp REQUIRED)
 
 
@@ -30,7 +30,7 @@ add_executable(cyclic_pipeline
 ament_target_dependencies(cyclic_pipeline
   "rclcpp"
   "std_msgs"
-  "specialized_intra_process"
+  "specialized_intra_process_comm"
 )
 
 install(TARGETS
@@ -43,7 +43,7 @@ add_executable(talker_listener
 ament_target_dependencies(talker_listener
   "rclcpp"
   "std_msgs"
-  "specialized_intra_process"
+  "specialized_intra_process_comm"
   )
 install(TARGETS
   talker_listener
@@ -55,7 +55,7 @@ add_executable(talker_listener_with_allocator
 ament_target_dependencies(talker_listener_with_allocator
   "rclcpp"
   "std_msgs"
-  "specialized_intra_process"
+  "specialized_intra_process_comm"
   "tlsf_cpp"
   )
 install(TARGETS
@@ -68,7 +68,7 @@ add_executable(debug_interface
 ament_target_dependencies(debug_interface
   "rclcpp"
   "std_msgs"
-  "specialized_intra_process"
+  "specialized_intra_process_comm"
   "tlsf_cpp"
   )
 install(TARGETS

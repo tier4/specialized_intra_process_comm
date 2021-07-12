@@ -16,7 +16,7 @@
 #include <memory>
 #include <utility>
 
-#include "specialized_intra_process/intra_process_manager.hpp"
+#include "specialized_intra_process_comm/intra_process_manager.hpp"
 
 namespace feature
 {

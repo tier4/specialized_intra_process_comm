@@ -70,7 +70,7 @@ typename std::shared_ptr<SubscriptionT> create_intra_process_subscription(
         callback(std::move(buf_msg));
       } else {
         RCLCPP_WARN(
-          rclcpp::get_logger("specialized_intra_process"),
+          rclcpp::get_logger("specialized_intra_process_comm"),
           "Failed to get the message. Executing callback was cancelled.");
       }
     };

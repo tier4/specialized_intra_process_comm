@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(specialized_intra_process)
+project(specialized_intra_process_comm)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -22,23 +22,23 @@ find_package(notification_msgs REQUIRED)
 
 include_directories(include)
 
-add_library(specialized_intra_process SHARED
+add_library(specialized_intra_process_comm SHARED
   src/intra_process_manager.cpp
   src/publisher_base.cpp
   src/subscription_base.cpp
 )
 
-ament_target_dependencies(specialized_intra_process
+ament_target_dependencies(specialized_intra_process_comm
   "rclcpp"
   "notification_msgs"
 )
 
-target_include_directories(specialized_intra_process
+target_include_directories(specialized_intra_process_comm
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-ament_export_targets(export_specialized_intra_process HAS_LIBRARY_TARGET)
+ament_export_targets(export_specialized_intra_process_comm HAS_LIBRARY_TARGET)
 ament_export_dependencies(
   "rclcpp"
   "notification_msgs"
@@ -50,8 +50,8 @@ install(
 )
 
 install(
-  TARGETS specialized_intra_process
-  EXPORT export_specialized_intra_process
+  TARGETS specialized_intra_process_comm
+  EXPORT export_specialized_intra_process_comm
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin
@@ -59,7 +59,7 @@ install(
 )
 
 ament_export_include_directories(include)
-ament_export_libraries(specialized_intra_process)
+ament_export_libraries(specialized_intra_process_comm)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

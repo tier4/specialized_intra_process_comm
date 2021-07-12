@@ -21,7 +21,7 @@
 
 #include "notification_msgs/msg/notification.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "specialized_intra_process/specialized_intra_process.hpp"
+#include "specialized_intra_process_comm/specialized_intra_process_comm.hpp"
 #include "std_msgs/msg/int32.hpp"
 
 #define PING_TOPIC_NAME "ping"

@@ -21,7 +21,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/int32.hpp"
-#include "specialized_intra_process/specialized_intra_process.hpp"
+#include "specialized_intra_process_comm/specialized_intra_process_comm.hpp"
 
 using namespace std::chrono_literals;
 void to_ros_msg(const int & source, std_msgs::msg::Int32 & destination)
