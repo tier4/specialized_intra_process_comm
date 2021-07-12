@@ -109,7 +109,7 @@ int main(int argc, char ** argv)
   auto exec = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
 
   auto ping = std::make_shared<Ping>("ping_node");
-  auto pong = std::make_shared<Pong>("ping_node");
+  auto pong = std::make_shared<Pong>("pong_node");
 
   exec->add_node(ping);
   exec->add_node(pong);
