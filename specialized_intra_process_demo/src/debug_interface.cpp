@@ -41,7 +41,7 @@ public:
     count_(0)
   {
     auto sub_callback = [&](ROSMessageUniquePtr msg) -> void {
-        RCLCPP_INFO(get_logger(), "Subscribed ros message: count = '%d'", *msg);
+        RCLCPP_INFO(get_logger(), "Subscribed ros message: count = '%d'", msg->data);
       };
 
     auto ping_debug_topic_name = PING_TOPIC_NAME + std::string("/converted");
@@ -55,7 +55,7 @@ public:
         auto msg = std::make_unique<ROSMessage>();
         msg->data = count_;
 
-        RCLCPP_INFO(get_logger(), "Publishing ros message: count = '%d'", *msg);
+        RCLCPP_INFO(get_logger(), "Publishing ros message: count = '%d'", msg->data);
         pub_->publish(std::move(msg));
       };
 
